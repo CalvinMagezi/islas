@@ -8,9 +8,6 @@ import { Type } from "@sinclair/typebox";
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { logger } from "./logger.js";
 
-/** Callback fired when a job is dispatched, so the Discord bot can track it */
-export type OnJobDispatched = (jobId: string) => void;
-
 // --- dispatch_job Tool ---
 
 const DispatchJobSchema = Type.Object({
@@ -22,9 +19,6 @@ const DispatchJobSchema = Type.Object({
 export function createDispatchJobTool(config: {
     baseUrl: string;
     apiKey: string;
-    discordChannelId?: string;
-    discordIsDM?: boolean;
-    onJobDispatched?: OnJobDispatched;
 }): AgentTool<typeof DispatchJobSchema> {
     return {
         name: "dispatch_job",
@@ -40,12 +34,6 @@ export function createDispatchJobTool(config: {
                     priority: args.priority ?? 50,
                     securityProfile: args.securityProfile ?? "guarded",
                 };
-
-                // Include Discord context so the job watcher can send results back
-                if (config.discordChannelId) {
-                    body.discordChannelId = config.discordChannelId;
-                    body.discordIsDM = config.discordIsDM ?? false;
-                }
 
                 const res = await fetch(`${config.baseUrl}/api/jobs/create`, {
                     method: "POST",
@@ -76,9 +64,6 @@ export function createDispatchJobTool(config: {
                 const jobId = result.jobId;
 
                 logger.info("Job dispatched from chat", { jobId, instruction: args.instruction.substring(0, 100) });
-
-                // Notify Discord bot to track this job for result delivery
-                config.onJobDispatched?.(jobId);
 
                 return {
                     content: [{

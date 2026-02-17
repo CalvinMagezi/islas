@@ -28,20 +28,6 @@ export const insertNotification = internalMutation({
       read: false,
     });
 
-    // Fire-and-forget: relay to Discord webhook if configured
-    if (args.type === "permission_prompt" || args.type === "task_complete") {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.functions.notifications.relayToDiscordWebhook,
-        {
-          userId: args.userId,
-          title: args.title || args.type,
-          message: args.message,
-          type: args.type,
-        },
-      );
-    }
-
     return id;
   },
 });
@@ -146,46 +132,6 @@ export const clearAll = mutation({
     }
 
     return { deleted: notifications.length };
-  },
-});
-
-// ── Discord Webhook Relay (fire-and-forget from insertNotification) ──
-
-export const relayToDiscordWebhook = internalAction({
-  args: {
-    userId: v.string(),
-    title: v.string(),
-    message: v.string(),
-    type: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // Look up user's Discord webhook URL from settings
-    const setting = await ctx.runQuery(
-      internal.functions.settings.getByUserKey,
-      { userId: args.userId, key: "discord_webhook_url" },
-    );
-
-    if (!setting?.value) return;
-
-    const color = args.type === "permission_prompt" ? 0xf59e0b : 0x22c55e;
-    const emoji = args.type === "permission_prompt" ? "🛡️" : "✅";
-
-    try {
-      await fetch(setting.value, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          embeds: [{
-            title: `${emoji} ${args.title}`,
-            description: args.message.substring(0, 500),
-            color,
-            timestamp: new Date().toISOString(),
-          }],
-        }),
-      });
-    } catch {
-      // Webhook failures are non-critical
-    }
   },
 });
 

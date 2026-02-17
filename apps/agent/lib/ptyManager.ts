@@ -299,7 +299,6 @@ export class PtyManager {
             "OPENROUTER_API_KEY",
             "ISLAS_API_KEY",
             "MCP_GATEWAY_TOKEN",
-            "DISCORD_BOT_TOKEN",
             "CONVEX_DEPLOYMENT",
             "NEXT_PUBLIC_CONVEX_URL",
         ];

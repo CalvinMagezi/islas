@@ -18,7 +18,6 @@ import * as path from "path";
 import WebSocket from "ws";
 import { ToolGuardian, SecurityProfile, DEFAULT_POLICIES, PROFILE_TOOL_NAMES, createSecuritySpawnHook, type ApprovalCallback } from "./governance.js";
 import { LoadSkillTool, ListSkillsTool, SkillLoader } from "./skills.js";
-import { loadDiscordConfig, type DiscordBot } from "./discordBot.js";
 // lib/retry.ts kept for non-Pi-SDK retries (Convex calls, HTTP requests)
 // Pi SDK handles LLM retry internally via SettingsManager.retry config
 import { shouldFlushMemory, executeMemoryFlush, createFlushState, DEFAULT_FLUSH_OPTIONS } from "./lib/memoryFlush.js";
@@ -102,7 +101,6 @@ let lastJobStatus: string | null = null;
 let lastJobUpdatedAt: number | null = null;
 let rpcResult: any = null; // For RPC mode
 let heartbeatInterval: NodeJS.Timeout | null = null;
-let discordBot: DiscordBot | null = null;
 let chatSession: ChatSessionManager | null = null;
 let ptyManager: PtyManager | null = null;
 let wsServer: AgentWsServer | null = null;
@@ -366,16 +364,13 @@ async function setupAgent() {
                 apiKey: API_KEY,
                 metadata: { cwd: TARGET_DIR, folderName: path.basename(TARGET_DIR) }
             }));
-
-            // Sync Discord presence
-            await discordBot?.updatePresence(status);
         } catch (err: any) {
             console.error("Heartbeat failed:", err);
             logger.warn("Heartbeat failed", { error: err.message });
         }
     }, 10000); // 10 seconds
 
-    // 3. Initialize Chat Session (shared brain for all clients: Discord, WebSocket, etc.)
+    // 3. Initialize Chat Session (shared brain for WebSocket clients)
     if (OPENROUTER_API_KEY) {
         const convexBaseUrl = CONVEX_URL!.replace(".cloud", ".site");
         chatSession = new ChatSessionManager({
@@ -408,31 +403,7 @@ async function setupAgent() {
         console.log("⚠️  Chat session disabled (no OPENROUTER_API_KEY)");
     }
 
-    // 4. Initialize Discord Bot (optional — only if settings are configured)
-    try {
-        discordBot = await loadDiscordConfig(client, API_KEY, CONVEX_URL!);
-        if (discordBot) {
-            await discordBot.start();
-
-            // Give Discord the shared chat session
-            if (chatSession) {
-                discordBot.setChatSession(chatSession);
-            }
-
-            // Provide agent context to Discord bot for intent classifier
-            discordBot.setAgentContext({
-                targetDir: TARGET_DIR,
-                workerId: WORKER_ID,
-                isBusy: false,
-            });
-        } else {
-            console.log("ℹ️  Discord bot not configured (set discord_bot_token in settings to enable)");
-        }
-    } catch (err: any) {
-        console.warn("⚠️ Discord bot initialization failed:", err.message);
-    }
-
-    // 5. Initialize PtyManager for terminal orchestration
+    // 4. Initialize PtyManager for terminal orchestration
     ptyManager = new PtyManager(
         // onOutput: broadcast PTY data to WebSocket clients
         (sessionId, data) => {
@@ -579,15 +550,6 @@ async function handleJob(job: any) {
     isBusy = true;
     currentJobId = job._id;
 
-    // Update Discord presence and agent context
-    await discordBot?.updatePresence("busy");
-    discordBot?.setAgentContext({
-        targetDir: TARGET_DIR,
-        workerId: WORKER_ID,
-        isBusy: true,
-        currentJobInstruction: job.instruction,
-    });
-
     try {
         // Try to claim the job - this will fail if another worker grabbed it
         try {
@@ -616,15 +578,6 @@ async function handleJob(job: any) {
             console.log("🖥️  Terminal-only job detected. Waiting for WebSocket terminal connection...");
             console.log("   (This job will be handled by PTY terminal, not Pi SDK)");
 
-            // Notify Discord of job start
-            if (discordBot) {
-                void discordBot.sendJobEvent({
-                    type: "started",
-                    jobId: job._id,
-                    instruction: job.instruction.replace("[TERMINAL] ", ""),
-                });
-            }
-
             // Keep job running so terminal can connect, but don't process with Pi SDK
             // The terminal will handle all execution via PTY
             // Job will be marked as done when terminal exits
@@ -634,15 +587,6 @@ async function handleJob(job: any) {
         }
 
         console.log("Assistant: ");
-
-        // Notify Discord of job start
-        if (discordBot) {
-            void discordBot.sendJobEvent({
-                type: "started",
-                jobId: job._id,
-                instruction: job.instruction,
-            });
-        }
 
         // Setup Governance & Tools — use per-job profile if specified, default GUARDED
         const profileMap: Record<string, SecurityProfile> = {
@@ -1189,15 +1133,6 @@ IMPORTANT: Verify your work with tools before responding.`;
 
         if (job.type !== "interactive") console.log("\n✓ Task completed");
         logger.info("Job completed", { jobId: job._id, type: job.type, stats: jobStats });
-
-        // Notify Discord of job completion
-        if (discordBot) {
-            void discordBot.sendJobEvent({
-                type: "completed",
-                jobId: job._id,
-                instruction: job.instruction,
-            });
-        }
     } catch (error: any) {
         const errorMsg = error.message || String(error);
         const isCancellation = errorMsg.includes("cancelled by user");
@@ -1243,29 +1178,11 @@ IMPORTANT: Verify your work with tools before responding.`;
                 logger.warn("Follow-up job creation failed", { error: handoverErr.message });
             }
         }
-
-        // Notify Discord of job failure/cancellation
-        if (discordBot) {
-            void discordBot.sendJobEvent({
-                type: isCancellation ? "cancelled" : "failed",
-                jobId: job._id,
-                instruction: job.instruction,
-                error: isCancellation ? "Cancelled by user" : errorMsg,
-            });
-        }
     } finally {
         isBusy = false;
         currentJobId = null;
         currentSession = null;
         rpcResult = null;
-
-        // Update Discord presence and agent context back to idle
-        await discordBot?.updatePresence("online");
-        discordBot?.setAgentContext({
-            targetDir: TARGET_DIR,
-            workerId: WORKER_ID,
-            isBusy: false,
-        });
     }
 }
 
@@ -1316,12 +1233,6 @@ async function shutdown() {
     // Stop WebSocket server
     if (wsServer) {
         wsServer.stop();
-    }
-
-    // Update Discord presence to offline before stopping
-    if (discordBot) {
-        await discordBot.updatePresence("offline");
-        await discordBot.stop();
     }
 
     if (isBusy && currentJobId && currentSession) {

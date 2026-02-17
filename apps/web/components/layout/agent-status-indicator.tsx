@@ -15,7 +15,8 @@ export function AgentStatusIndicator() {
   const pendingApprovals = useQuery(api.approvals.pendingApprovalCount);
 
   const status = workerStatus?.status ?? "offline";
-  const lastHeartbeat = workerStatus?.lastHeartbeat;
+  const lastSeen = workerStatus?.lastSeen;
+  const currentJob = workerStatus?.currentJob;
 
   const statusConfig: Record<string, { color: string; label: string; pulse: boolean }> = {
     online: { color: "bg-emerald-500", label: "Online", pulse: true },
@@ -25,8 +26,8 @@ export function AgentStatusIndicator() {
 
   const config = statusConfig[status] || statusConfig.offline;
 
-  const timeAgo = lastHeartbeat
-    ? formatTimeAgo(lastHeartbeat)
+  const timeAgo = lastSeen
+    ? formatTimeAgo(lastSeen)
     : "never";
 
   return (
@@ -63,10 +64,15 @@ export function AgentStatusIndicator() {
         <TooltipContent side="bottom" className="text-xs glass">
           <div className="space-y-1">
             <div className="font-display text-[11px] font-bold">Islas Agent: {config.label}</div>
-            <div className="text-muted-foreground text-[10px]">Last heartbeat: {timeAgo}</div>
+            <div className="text-muted-foreground text-[10px]">Last seen: {timeAgo}</div>
             {workerStatus?.workerId && (
               <div className="text-muted-foreground font-mono text-[9px]">
                 {workerStatus.workerId}
+              </div>
+            )}
+            {currentJob && (
+              <div className="text-muted-foreground text-[10px] mt-1 max-w-48 truncate">
+                Current: {currentJob}
               </div>
             )}
           </div>

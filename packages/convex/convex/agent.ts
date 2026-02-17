@@ -474,8 +474,6 @@ export const createJobInternal = internalMutation({
         securityProfile: v.optional(v.union(v.literal("minimal"), v.literal("standard"), v.literal("guarded"), v.literal("admin"))),
         modelOverride: v.optional(v.string()),
         thinkingLevel: v.optional(v.union(v.literal("off"), v.literal("minimal"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("xhigh"))),
-        discordChannelId: v.optional(v.string()),
-        discordIsDM: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const now = Date.now();
@@ -495,8 +493,6 @@ export const createJobInternal = internalMutation({
             securityProfile: args.securityProfile,
             modelOverride: args.modelOverride,
             thinkingLevel: args.thinkingLevel,
-            discordChannelId: args.discordChannelId,
-            discordIsDM: args.discordIsDM,
             conversationHistory,
             createdAt: now,
             updatedAt: now,
@@ -608,61 +604,6 @@ export const getJobInternal = internalQuery({
     args: { jobId: v.id("agentJobs") },
     handler: async (ctx, args) => {
         return await ctx.db.get(args.jobId);
-    },
-});
-
-export const getCompletedDiscordJobs = internalQuery({
-    args: { userId: v.string() },
-    handler: async (ctx, args) => {
-        // Get jobs that are done/failed, have Discord context, and haven't been notified yet
-        const jobs = await ctx.db
-            .query("agentJobs")
-            .withIndex("by_user", (q) => q.eq("userId", args.userId))
-            .filter((q) =>
-                q.and(
-                    q.or(
-                        q.eq(q.field("status"), "done"),
-                        q.eq(q.field("status"), "failed")
-                    ),
-                    q.neq(q.field("discordChannelId"), undefined),
-                    q.neq(q.field("discordNotified"), true)
-                )
-            )
-            .order("desc")
-            .take(20);
-
-        return jobs.map((job) => {
-            // Extract last agent response from conversationHistory if streamingText is empty
-            let responseText = job.streamingText;
-            if (!responseText && job.conversationHistory) {
-                const lastAgentMessage = job.conversationHistory
-                    .filter((msg: any) => msg.role === "agent")
-                    .pop();
-                if (lastAgentMessage) {
-                    responseText = lastAgentMessage.content;
-                }
-            }
-
-            return {
-                jobId: job._id,
-                status: job.status,
-                instruction: job.instruction,
-                result: job.result,
-                streamingText: responseText,
-                discordChannelId: job.discordChannelId,
-                discordIsDM: job.discordIsDM,
-                createdAt: job.createdAt,
-                updatedAt: job.updatedAt,
-            };
-        });
-    },
-});
-
-/** Mark a Discord job as notified so it won't be re-sent on restart. */
-export const markDiscordNotified = internalMutation({
-    args: { jobId: v.id("agentJobs") },
-    handler: async (ctx, args) => {
-        await ctx.db.patch(args.jobId, { discordNotified: true });
     },
 });
 
@@ -787,13 +728,23 @@ export const getWorkerStatus = query({
                 .first();
         }
 
-        if (!session) return { status: "offline" };
+        if (!session) {
+            return {
+                status: "offline" as const,
+                workerId: null,
+                lastSeen: null,
+                currentJob: null
+            };
+        }
 
-        return { 
-            status: session.status, 
-            lastHeartbeat: session.lastHeartbeat,
+        const now = Date.now();
+        const isStale = now - session.lastHeartbeat > 30000; // 30 seconds
+
+        return {
+            status: isStale ? ("offline" as const) : session.status,
             workerId: session.workerId,
-            metadata: session.metadata
+            lastSeen: session.lastHeartbeat,
+            currentJob: session.metadata?.currentJobInstruction || null,
         };
     },
 });

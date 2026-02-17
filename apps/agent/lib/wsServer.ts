@@ -1,7 +1,7 @@
 /**
  * WebSocket server for the local HQ agent.
- * Provides real-time chat to the web UI using the same ChatSessionManager
- * that Discord uses. Binds to 127.0.0.1 only (local-only, no auth needed).
+ * Provides real-time chat to the web UI using ChatSessionManager.
+ * Binds to 127.0.0.1 only (local-only, no auth needed).
  *
  * Protocol: simple JSON frames (req/res/event) inspired by OpenClaw.
  */

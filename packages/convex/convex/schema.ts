@@ -263,9 +263,6 @@ export default defineSchema({
       v.literal("high"),
       v.literal("xhigh"),
     )),
-    discordChannelId: v.optional(v.string()), // Discord channel to send completion notification
-    discordIsDM: v.optional(v.boolean()), // Whether the Discord channel is a DM
-    discordNotified: v.optional(v.boolean()), // Whether Discord has been notified of completion
     stats: v.optional(v.object({ // Pi SDK session stats captured on job completion
       tokens: v.object({
         input: v.number(),

@@ -1,5 +1,5 @@
 /**
- * Persistent lightweight chat session for Discord messages.
+ * Persistent lightweight chat session for WebSocket clients.
  * Uses Pi SDK with minimal tools (dispatch_job, check_job_status, local_context).
  * Handles conversational messages without spinning up a full agent session.
  */
@@ -27,16 +27,9 @@ export interface ChatSessionConfig {
     contextFile: string;
 }
 
-export interface DiscordContext {
-    channelId: string;
-    isDM: boolean;
-    onJobDispatched?: OnJobDispatched;
-}
-
 /**
  * Optional callbacks for streaming events.
  * Used by the WebSocket server to push real-time deltas to clients.
- * When omitted (e.g. Discord path), the session accumulates text internally.
  */
 export interface StreamCallbacks {
     onDelta?: (delta: string) => void;
@@ -52,21 +45,9 @@ export class ChatSessionManager {
     private config: ChatSessionConfig;
     private isProcessing: boolean = false;
     private isFirstMessage: boolean = true;
-    private discordContext: DiscordContext | null = null;
 
     constructor(config: ChatSessionConfig) {
         this.config = config;
-    }
-
-    /**
-     * Set Discord context so dispatched jobs include channel info
-     * and the Discord bot can track them for result delivery.
-     */
-    setDiscordContext(ctx: DiscordContext): void {
-        this.discordContext = ctx;
-        // Rebuild tools with new context — session will be recreated on next message
-        this.session = null;
-        this.isFirstMessage = true;
     }
 
     private buildTools(): AgentTool<any>[] {
@@ -98,9 +79,6 @@ export class ChatSessionManager {
         const dispatchJobTool = createDispatchJobTool({
             baseUrl: config.convexBaseUrl,
             apiKey: config.apiKey,
-            discordChannelId: this.discordContext?.channelId,
-            discordIsDM: this.discordContext?.isDM,
-            onJobDispatched: this.discordContext?.onJobDispatched,
         });
 
         const checkJobStatusTool = createCheckJobStatusTool({

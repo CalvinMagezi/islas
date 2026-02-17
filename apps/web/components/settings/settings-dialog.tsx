@@ -7,15 +7,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Key, BarChart3, Settings, MessageSquare } from "lucide-react";
+import { Key, BarChart3, Settings } from "lucide-react";
 import { ApiKeyManager } from "./api-key-manager";
 import { UsageDashboard } from "./usage-dashboard";
-import { DiscordSettings } from "./discord-settings";
 
 const TABS = [
   { key: "api-keys", label: "API Keys", icon: Key },
   { key: "usage", label: "Usage", icon: BarChart3 },
-  { key: "discord", label: "Discord", icon: MessageSquare },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -58,7 +56,6 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         <ScrollArea className="max-h-[60vh] px-5 pb-5">
           {activeTab === "api-keys" && <ApiKeyManager />}
           {activeTab === "usage" && <UsageDashboard />}
-          {activeTab === "discord" && <DiscordSettings />}
         </ScrollArea>
       </DialogContent>
     </Dialog>

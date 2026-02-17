@@ -93,7 +93,6 @@ const SENSITIVE_ENV_VARS = [
     "OPENROUTER_API_KEY",
     "ISLAS_API_KEY",
     "MCP_GATEWAY_TOKEN",
-    "DISCORD_BOT_TOKEN",
 ];
 
 export type RiskLevel = "low" | "medium" | "high" | "critical";
