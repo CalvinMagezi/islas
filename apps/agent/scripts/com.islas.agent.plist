@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.islas.agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- Updated by install-daemon.sh to use the correct bun path -->
+        <string>/usr/local/bin/bun</string>
+        <string>index.ts</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <!-- Updated by install-daemon.sh to use the actual agent directory -->
+    <string>__AGENT_DIR__</string>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__HOME__/Library/Logs/islas-agent.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__HOME__/Library/Logs/islas-agent.error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+</dict>
+</plist>

@@ -1,0 +1,36 @@
+{
+    "name": "@repo/convex",
+    "version": "0.1.0",
+    "private": true,
+    "main": "./index.ts",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./index.ts"
+        },
+        "./agent": {
+            "types": "./dist/agent/index.d.ts",
+            "default": "./index.ts"
+        },
+        "./functions/apiKeys": {
+            "types": "./dist/functions/apiKeys.d.ts",
+            "default": "./convex/functions/apiKeys.ts"
+        },
+        "./lib/mcpTools": {
+            "types": "./dist/lib/mcpTools.d.ts",
+            "default": "./convex/lib/mcpTools.ts"
+        }
+    },
+    "scripts": {
+        "dev": "convex dev",
+        "build": "bash scripts/build.sh"
+    },
+    "dependencies": {
+        "@convex-dev/auth": "^0.0.90",
+        "convex": "^1.31.7"
+    },
+    "devDependencies": {
+        "@auth/core": "^0.34.3"
+    }
+}

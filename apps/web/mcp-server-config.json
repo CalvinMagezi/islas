@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "islas-notebooks": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-fetch@latest",
+        "https://woozy-finch-245.convex.site/mcp"
+      ],
+      "env": {
+        "CONVEX_AUTH_HEADER": "Bearer chq_c9db7a55958e2a1e264b416c26be2df7aa884a1d5f7f08dc04b20f894de02c93"
+      }
+    }
+  }
+}
