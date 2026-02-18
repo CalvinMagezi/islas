@@ -1,0 +1,22 @@
+# Web app (Next.js PWA)
+{$DOMAIN} {
+    reverse_proxy web:3000
+}
+
+# Convex WebSocket + HTTP API (browser clients connect here)
+api.{$DOMAIN} {
+    reverse_proxy convex:3210
+}
+
+# Convex HTTP actions (MCP gateway, webhooks)
+actions.{$DOMAIN} {
+    reverse_proxy convex:3211
+}
+
+# Convex Dashboard (basic auth protected)
+dash.{$DOMAIN} {
+    basicauth {
+        {$DASHBOARD_USER} {$DASHBOARD_PASSWORD_HASH}
+    }
+    reverse_proxy dashboard:6791
+}

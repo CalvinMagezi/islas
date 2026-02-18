@@ -1,0 +1,107 @@
+services:
+  # ── 1. Self-Hosted Convex Backend ─────────────────────────────────────────
+  convex:
+    image: ghcr.io/get-convex/convex-backend:latest
+    restart: unless-stopped
+    environment:
+      - CONVEX_RELEASE_VERSION_DEV=skip
+    volumes:
+      - convex_data:/convex_data
+    networks:
+      - islas-net
+
+  # ── 2. Convex Dashboard ───────────────────────────────────────────────────
+  dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:latest
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=https://api.${DOMAIN}
+    networks:
+      - islas-net
+
+  # ── 3. One-shot: Deploy Convex schema and functions ───────────────────────
+  convex-deploy:
+    image: node:20-slim
+    depends_on:
+      - convex
+    environment:
+      - CONVEX_SELF_HOSTED_URL=http://convex:3210
+      - CONVEX_SELF_HOSTED_ADMIN_KEY=${CONVEX_ADMIN_KEY}
+    volumes:
+      - ./packages/convex:/app/packages/convex
+    working_dir: /app/packages/convex
+    command: >
+      sh -c "npm install -g convex@latest && npx convex deploy --yes"
+    networks:
+      - islas-net
+    restart: "no"
+
+  # ── 4. Next.js Web App ────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_CONVEX_URL: https://api.${DOMAIN}
+        NEXT_PUBLIC_ACCESS_PASSPHRASE: ${ACCESS_PASSPHRASE}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+    restart: unless-stopped
+    depends_on:
+      - convex
+    networks:
+      - islas-net
+
+  # ── 5. Islas Agent ────────────────────────────────────────────────────────
+  agent:
+    build:
+      context: .
+      dockerfile: apps/agent/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - convex
+    environment:
+      - NEXT_PUBLIC_CONVEX_URL=http://convex:3210
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - ISLAS_API_KEY=${ISLAS_API_KEY}
+      - WORKER_SECRET=${WORKER_SECRET}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-moonshotai/kimi-k2.5}
+      - TARGET_DIR=/workspace
+      - MCP_GATEWAY_URL=http://convex:3211/mcp
+      - MCP_GATEWAY_TOKEN=${MCP_GATEWAY_TOKEN}
+    volumes:
+      - agent_skills:/agent/apps/agent/skills
+      - agent_context:/agent/apps/agent/islas-context.md
+      - agent_workspace:/workspace
+    networks:
+      - islas-net
+
+  # ── 6. Caddy (Reverse Proxy + Automatic HTTPS) ────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - DASHBOARD_USER=${DASHBOARD_USER:-admin}
+      - DASHBOARD_PASSWORD_HASH=${DASHBOARD_PASSWORD_HASH}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - islas-net
+
+volumes:
+  convex_data:
+  agent_skills:
+  agent_context:
+  agent_workspace:
+  caddy_data:
+  caddy_config:
+
+networks:
+  islas-net:
+    driver: bridge
