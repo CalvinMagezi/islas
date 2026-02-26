@@ -97,28 +97,15 @@ export const resolveApproval = mutation({
     });
 
     // If this is a workflow-backed approval, send the event
-    if (approval.workflowId) {
-      if (approval.source === "agent") {
-        // Agent workflow (existing approval workflow)
-        await ctx.runMutation(
-          internal.functions.approvals.sendApprovalEvent,
-          {
-            workflowId: approval.workflowId,
-            approved: args.decision === "approved",
-            reason: args.rejectionReason,
-          },
-        );
-      } else if (approval.source === "orchestrator") {
-        // Orchestrator workflow (task execution workflow)
-        await ctx.runMutation(
-          internal.workflows.agentExecutionWorkflow.sendApprovalSignal,
-          {
-            workflowId: approval.workflowId,
-            approved: args.decision === "approved",
-            rejectionReason: args.rejectionReason,
-          },
-        );
-      }
+    if (approval.workflowId && approval.source === "agent") {
+      await ctx.runMutation(
+        internal.functions.approvals.sendApprovalEvent,
+        {
+          workflowId: approval.workflowId,
+          approved: args.decision === "approved",
+          reason: args.rejectionReason,
+        },
+      );
     }
 
     return { status: args.decision };

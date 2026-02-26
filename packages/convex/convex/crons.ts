@@ -24,12 +24,4 @@ crons.interval("expire approvals", { minutes: 1 }, i.functions.approvals.expireP
 // Daily memory consolidation — analyze recent notes and generate insights
 crons.cron("daily memory consolidation", "0 3 * * *", i.workflows.memoryConsolidation.dailyConsolidate);
 
-// Cleanup idle terminal sessions (30min idle timeout)
-crons.interval("cleanup idle terminals", { minutes: 5 }, i.agent.cleanupIdleTerminals, {
-    maxIdleMs: 30 * 60 * 1000, // 30 minutes
-});
-
-// Cleanup expired terminal tokens
-crons.interval("cleanup expired tokens", { minutes: 5 }, i.agent.cleanupExpiredTokens);
-
 export default crons;

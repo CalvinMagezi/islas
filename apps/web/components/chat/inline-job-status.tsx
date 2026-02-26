@@ -9,10 +9,9 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Terminal,
-  MessageSquare
+  MessageSquare,
+  Download,
 } from "lucide-react";
-import Link from "next/link";
 
 interface InlineJobStatusProps {
   jobId: Id<"agentJobs">;
@@ -21,6 +20,10 @@ interface InlineJobStatusProps {
 
 export function InlineJobStatus({ jobId, className }: InlineJobStatusProps) {
   const job = useQuery(api.agent.getJob, { jobId });
+  const files = useQuery(
+    api.agent.listJobFiles,
+    job?.status === "done" ? { jobId } : "skip"
+  );
 
   if (!job) {
     return null;
@@ -142,17 +145,6 @@ export function InlineJobStatus({ jobId, className }: InlineJobStatusProps) {
             </p>
           )}
 
-          {/* Link to full terminal view */}
-          <Link
-            href={`/terminal?jobId=${jobId}`}
-            className={cn(
-              "inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors",
-              "mt-1"
-            )}
-          >
-            <Terminal className="h-3 w-3" />
-            <span>View full logs</span>
-          </Link>
         </div>
       </div>
 
@@ -168,6 +160,26 @@ export function InlineJobStatus({ jobId, className }: InlineJobStatusProps) {
               <span>${job.stats.cost.toFixed(4)}</span>
             </>
           )}
+        </div>
+      )}
+
+      {/* Published files for completed jobs */}
+      {job.status === "done" && files && files.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
+          {files.map((file) => (
+            <a
+              key={file._id}
+              href={`/api/workspace/${file.path}`}
+              download={file.name}
+              className="flex items-center gap-2 text-xs text-emerald-500 hover:text-emerald-400 transition-colors"
+            >
+              <Download className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{file.name}</span>
+              <span className="text-muted-foreground/50 flex-shrink-0">
+                {(file.size / 1024).toFixed(1)} KB
+              </span>
+            </a>
+          ))}
         </div>
       )}
     </div>

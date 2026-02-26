@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Settings, Bot, BarChart3, Terminal } from "lucide-react";
+import { BookOpen, Settings, Bot, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobileBottomNavProps {
@@ -61,34 +61,6 @@ export function MobileBottomNav({
         >
           <BookOpen className="h-5 w-5" />
           <span>Notes</span>
-        </Link>
-
-        {/* Terminal */}
-        <Link
-          href="/terminal"
-          className={cn(
-            "flex flex-1 flex-col items-center gap-0.5 py-2 pt-2.5 text-[10px] font-display transition-colors",
-            pathname.startsWith("/terminal")
-              ? "text-primary font-bold"
-              : "text-muted-foreground/50 active:text-foreground"
-          )}
-        >
-          <Terminal className="h-5 w-5" />
-          <span>Shell</span>
-        </Link>
-
-        {/* Terminal */}
-        <Link
-          href="/terminal"
-          className={cn(
-            "flex flex-1 flex-col items-center gap-0.5 py-2 pt-2.5 text-[10px] font-display transition-colors",
-            pathname.startsWith("/terminal")
-              ? "text-primary font-bold"
-              : "text-muted-foreground/50 active:text-foreground"
-          )}
-        >
-          <Terminal className="h-5 w-5" />
-          <span>Terminal</span>
         </Link>
 
         {/* Settings */}

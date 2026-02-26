@@ -140,9 +140,9 @@ export default function DashboardPage() {
                 )}>
                   {workerStatus?.status || "Offline"}
                 </p>
-                {workerStatus?.lastHeartbeat && (
+                {workerStatus?.lastSeen && (
                   <p className="text-[11px] text-muted-foreground/40 font-display mt-1">
-                    Heartbeat {formatTimeAgo(workerStatus.lastHeartbeat)}
+                    Heartbeat {formatTimeAgo(workerStatus.lastSeen)}
                   </p>
                 )}
               </div>
@@ -388,11 +388,11 @@ export default function DashboardPage() {
                     </div>
                   )}
 
-                  {workerStatus?.lastHeartbeat && (
+                  {workerStatus?.lastSeen && (
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-muted-foreground/50">Heartbeat</span>
                       <span className="text-[10px] font-display text-muted-foreground/40">
-                        {formatTimeAgo(workerStatus.lastHeartbeat)}
+                        {formatTimeAgo(workerStatus.lastSeen)}
                       </span>
                     </div>
                   )}

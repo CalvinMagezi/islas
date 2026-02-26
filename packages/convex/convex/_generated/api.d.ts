@@ -47,7 +47,6 @@ import type * as tools_approvalTools from "../tools/approvalTools.js";
 import type * as tools_index from "../tools/index.js";
 import type * as tools_ragTools from "../tools/ragTools.js";
 import type * as tools_uiTools from "../tools/uiTools.js";
-import type * as workflows_agentExecutionWorkflow from "../workflows/agentExecutionWorkflow.js";
 import type * as workflows_approvalWorkflow from "../workflows/approvalWorkflow.js";
 import type * as workflows_healthCheck from "../workflows/healthCheck.js";
 import type * as workflows_heartbeat from "../workflows/heartbeat.js";
@@ -99,7 +98,6 @@ declare const fullApi: ApiFromModules<{
   "tools/index": typeof tools_index;
   "tools/ragTools": typeof tools_ragTools;
   "tools/uiTools": typeof tools_uiTools;
-  "workflows/agentExecutionWorkflow": typeof workflows_agentExecutionWorkflow;
   "workflows/approvalWorkflow": typeof workflows_approvalWorkflow;
   "workflows/healthCheck": typeof workflows_healthCheck;
   "workflows/heartbeat": typeof workflows_heartbeat;

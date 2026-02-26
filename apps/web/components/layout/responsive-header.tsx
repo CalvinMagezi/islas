@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@/components/auth/user-button";
-import { Settings, BookOpen, Bot, BarChart3, Terminal } from "lucide-react";
+import { Settings, BookOpen, Bot, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { AgentStatusIndicator } from "@/components/layout/agent-status-indicator";
@@ -21,7 +21,6 @@ const NAV_ITEMS = [
   { href: "/", label: "HQ", icon: Bot, match: (p: string) => p === "/" },
   { href: "/dashboard", label: "Dashboard", icon: BarChart3, match: (p: string) => p === "/dashboard" },
   { href: "/notebooks", label: "Notebooks", icon: BookOpen, match: (p: string) => p.startsWith("/notebooks") },
-  { href: "/terminal", label: "Terminal", icon: Terminal, match: (p: string) => p.startsWith("/terminal") },
 ];
 
 export function ResponsiveHeader({

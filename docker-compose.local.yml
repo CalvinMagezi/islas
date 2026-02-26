@@ -1,0 +1,99 @@
+# Local development stack — no Caddy/SSL, ports exposed directly
+# Usage: docker compose -f docker-compose.local.yml up -d
+# Loads .env from project root automatically
+
+services:
+  # ── 1. Self-hosted Convex backend ─────────────────────────────────────────
+  convex:
+    image: ghcr.io/get-convex/convex-backend:latest
+    restart: unless-stopped
+    ports:
+      - "3210:3210"   # API / WebSocket (browser connects here)
+      - "3211:3211"   # HTTP actions / MCP gateway
+    volumes:
+      - convex_local_data:/convex/data
+    environment:
+      - CONVEX_CLOUD_ORIGIN=http://127.0.0.1:3210
+      - CONVEX_SITE_ORIGIN=http://127.0.0.1:3211
+      - DO_NOT_REQUIRE_SSL=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3210/version"]
+      interval: 5s
+      start_period: 15s
+
+  # ── 2. Convex dashboard UI ────────────────────────────────────────────────
+  dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:latest
+    restart: unless-stopped
+    ports:
+      - "6791:6791"
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:3210
+    depends_on:
+      convex:
+        condition: service_healthy
+
+  # ── 3. Deploy schema + functions (one-shot on startup) ────────────────────
+  convex-deploy:
+    image: oven/bun:1.2
+    depends_on:
+      convex:
+        condition: service_healthy
+    environment:
+      - CONVEX_SELF_HOSTED_URL=http://convex:3210
+      - CONVEX_SELF_HOSTED_ADMIN_KEY=${CONVEX_ADMIN_KEY}
+    volumes:
+      - .:/app
+    working_dir: /app/packages/convex
+    command: >
+      sh -c "bun install && bunx convex deploy --yes"
+    restart: "no"
+
+  # ── 4. Next.js web app ────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* vars are baked into the client bundle at build time
+        NEXT_PUBLIC_CONVEX_URL: http://127.0.0.1:3210
+        NEXT_PUBLIC_ACCESS_PASSPHRASE: ${NEXT_PUBLIC_ACCESS_PASSPHRASE}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - agent_workspace:/workspace
+    environment:
+      - WORKSPACE_DIR=/workspace
+    depends_on:
+      convex:
+        condition: service_healthy
+
+  # ── 5. Islas local agent ──────────────────────────────────────────────────
+  agent:
+    build:
+      context: .
+      dockerfile: apps/agent/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      convex:
+        condition: service_healthy
+    environment:
+      # Within Docker network, agent reaches Convex via service name
+      - NEXT_PUBLIC_CONVEX_URL=http://convex:3210
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - ISLAS_API_KEY=${ISLAS_API_KEY}
+      - WORKER_SECRET=${WORKER_SECRET}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-moonshotai/kimi-k2.5}
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY}
+      - TARGET_DIR=/workspace
+      - MCP_GATEWAY_URL=http://convex:3211/mcp
+      - MCP_GATEWAY_TOKEN=${MCP_GATEWAY_TOKEN}
+    volumes:
+      - agent_skills:/agent/apps/agent/skills
+      - agent_workspace:/workspace
+
+volumes:
+  convex_local_data:
+  agent_skills:
+  agent_workspace:

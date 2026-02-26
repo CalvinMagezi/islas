@@ -274,37 +274,6 @@ export default defineSchema({
       toolCalls: v.number(),
       messages: v.number(),
     })),
-    // Orchestration fields for parallel terminal execution
-    orchestrationType: v.optional(v.union(
-      v.literal("single"),      // Default: one terminal (backward compatible)
-      v.literal("parallel"),    // Multiple terminals in parallel
-      v.literal("sequential")   // Chained terminals
-    )),
-    taskPlan: v.optional(v.object({
-      tasks: v.array(v.object({
-        id: v.string(),
-        description: v.string(),
-        command: v.string(),
-        cwd: v.optional(v.string()),
-        dependencies: v.array(v.string()),  // Task IDs this depends on
-        terminalId: v.optional(v.string()), // Assigned sessionId
-        status: v.union(
-          v.literal("pending"),
-          v.literal("running"),
-          v.literal("completed"),
-          v.literal("failed")
-        ),
-      })),
-      verificationChecks: v.optional(v.array(v.object({
-        type: v.union(
-          v.literal("file_exists"),
-          v.literal("command_output"),
-          v.literal("port_listening")
-        ),
-        args: v.any(),
-        expected: v.any(),
-      }))),
-    })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -406,6 +375,22 @@ export default defineSchema({
     .index("by_workflow", ["workflowId"]),
 
   // ==========================================
+  // WORKSPACE FILES: Files published by the agent
+  // ==========================================
+
+  workspaceFiles: defineTable({
+    userId: v.string(),
+    jobId: v.optional(v.id("agentJobs")),
+    name: v.string(),       // display name e.g. "handover-report.docx"
+    path: v.string(),       // relative path in /workspace e.g. "reports/handover.docx"
+    mimeType: v.string(),
+    size: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId", "createdAt"])
+    .index("by_job", ["jobId"]),
+
+  // ==========================================
   // SKILLS: Agent skill registry
   // ==========================================
 
@@ -417,51 +402,5 @@ export default defineSchema({
   })
     .index("by_worker", ["workerId"])
     .index("by_name", ["name"]),
-
-  // ==========================================
-  // ORCHESTRATION: Terminal Sessions & Tokens
-  // ==========================================
-
-  terminalSessions: defineTable({
-    jobId: v.id("agentJobs"),
-    userId: v.string(),
-    workerId: v.string(),
-    sessionId: v.string(), // UUID for PTY
-    shellType: v.union(v.literal("bash"), v.literal("zsh"), v.literal("sh")),
-    cwd: v.string(),
-    status: v.union(
-      v.literal("starting"),
-      v.literal("running"),
-      v.literal("exited"),
-      v.literal("error")
-    ),
-    exitCode: v.optional(v.number()),
-    pid: v.optional(v.number()),
-    rows: v.number(),
-    cols: v.number(),
-    commandCount: v.number(),
-    lastActivity: v.number(),
-    createdAt: v.number(),
-    securityProfile: v.union(
-      v.literal("minimal"),
-      v.literal("standard"),
-      v.literal("guarded"),
-      v.literal("admin")
-    ),
-  })
-    .index("by_job", ["jobId"])
-    .index("by_session", ["sessionId"])
-    .index("by_worker", ["workerId", "status"])
-    .index("by_status", ["status", "lastActivity"]),
-
-  terminalTokens: defineTable({
-    token: v.string(),
-    jobId: v.id("agentJobs"),
-    userId: v.string(),
-    expiresAt: v.number(),
-    used: v.boolean(),
-  })
-    .index("by_token", ["token"])
-    .index("by_expiry", ["expiresAt"]),
 
 });

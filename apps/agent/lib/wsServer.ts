@@ -10,8 +10,6 @@ import { WebSocketServer, WebSocket } from "ws";
 import { ChatSessionManager, type StreamCallbacks } from "./chatSession.js";
 import { classifyIntent, type ClassifierContext } from "./intentClassifier.js";
 import { logger } from "./logger.js";
-import { PtyManager, type PtySessionConfig } from "./ptyManager.js";
-import { SecurityProfile } from "../governance.js";
 
 // ── Protocol Types (mirrored from apps/web/lib/ws-protocol.ts) ──
 
@@ -42,9 +40,6 @@ export interface AgentWsServerConfig {
     port: number;
     chatSession: ChatSessionManager;
     agentContext: () => ClassifierContext;
-    ptyManager: PtyManager;
-    convexMutate: (name: string, args: Record<string, unknown>) => Promise<any>;
-    convexQuery: (name: string, args: Record<string, unknown>) => Promise<any>;
 }
 
 export class AgentWsServer {
@@ -110,22 +105,6 @@ export class AgentWsServer {
     // ── Message routing ─────────────────────────────────────────
 
     private handleRawMessage(ws: WebSocket, data: unknown): void {
-        // Binary frames: PTY input (first 36 bytes = sessionId UUID, rest = input)
-        if (data instanceof Buffer) {
-            if (data.length < 36) {
-                logger.warn("Invalid binary frame: too short", { length: data.length });
-                return;
-            }
-            const sessionId = data.subarray(0, 36).toString("utf-8");
-            const ptyInput = data.subarray(36).toString("utf-8");
-            try {
-                this.config.ptyManager.write(sessionId, ptyInput);
-            } catch (err: any) {
-                logger.error("Failed to write to PTY", { sessionId, error: err.message });
-            }
-            return;
-        }
-
         // Text frames: JSON-RPC
         let req: WsRequest;
         try {
@@ -153,18 +132,6 @@ export class AgentWsServer {
                 break;
             case "status":
                 this.handleStatus(ws, req);
-                break;
-            case "terminal.create":
-                this.handleTerminalCreate(ws, req);
-                break;
-            case "terminal.write":
-                this.handleTerminalWrite(ws, req);
-                break;
-            case "terminal.resize":
-                this.handleTerminalResize(ws, req);
-                break;
-            case "terminal.kill":
-                this.handleTerminalKill(ws, req);
                 break;
             default:
                 this.sendResponse(ws, req.id, false, undefined, `Unknown method: ${req.method}`);
@@ -315,170 +282,5 @@ export class AgentWsServer {
         }
     }
 
-    /**
-     * Broadcast binary PTY data to all connected clients.
-     * Frame format: [36-byte sessionId UUID][PTY data]
-     */
-    broadcastBinary(sessionId: string, data: Buffer): void {
-        const sessionIdBuffer = Buffer.from(sessionId, "utf-8");
-        if (sessionIdBuffer.length !== 36) {
-            logger.error("Invalid sessionId length for binary frame", { sessionId, length: sessionIdBuffer.length });
-            return;
-        }
-        const frame = Buffer.concat([sessionIdBuffer, data]);
-
-        for (const ws of this.clients) {
-            try {
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(frame);
-                }
-            } catch (err: any) {
-                logger.warn("Failed to broadcast binary frame", { error: err.message });
-            }
-        }
-    }
-
-    // ── terminal.create ─────────────────────────────────────────
-
-    private async handleTerminalCreate(ws: WebSocket, req: WsRequest): Promise<void> {
-        const { jobId, cwd, securityProfile, shellType, rows, cols } = req.params as {
-            jobId: string;
-            cwd?: string;
-            securityProfile?: SecurityProfile;
-            shellType?: "bash" | "zsh" | "sh";
-            rows?: number;
-            cols?: number;
-        };
-
-        if (!jobId) {
-            this.sendResponse(ws, req.id, false, undefined, "Missing jobId");
-            return;
-        }
-
-        try {
-            const ctx = this.config.agentContext();
-            const config: PtySessionConfig = {
-                jobId,
-                userId: "local-user",
-                cwd: cwd || ctx.targetDir || process.cwd(),
-                securityProfile: securityProfile || SecurityProfile.STANDARD,
-                shellType,
-                rows,
-                cols,
-            };
-
-            const session = this.config.ptyManager.createSession(config);
-
-            // Register session in Convex
-            await this.config.convexMutate("agent:createTerminalSession", {
-                jobId,
-                sessionId: session.sessionId,
-                workerId: ctx.workerId,
-                shellType: session.shellType,
-                cwd: session.cwd,
-                securityProfile: session.securityProfile,
-                rows: session.rows,
-                cols: session.cols,
-                pid: session.pid,
-            });
-
-            this.sendResponse(ws, req.id, true, {
-                sessionId: session.sessionId,
-                pid: session.pid,
-            });
-
-            // Broadcast creation event
-            this.broadcast({
-                type: "event",
-                event: "terminal.created",
-                payload: {
-                    sessionId: session.sessionId,
-                    jobId,
-                    pid: session.pid,
-                },
-            });
-        } catch (err: any) {
-            logger.error("Failed to create terminal", { error: err.message });
-            this.sendResponse(ws, req.id, false, undefined, err.message);
-        }
-    }
-
-    // ── terminal.write ──────────────────────────────────────────
-
-    private handleTerminalWrite(ws: WebSocket, req: WsRequest): void {
-        const { sessionId, data } = req.params as { sessionId: string; data: string };
-
-        if (!sessionId || data === undefined) {
-            this.sendResponse(ws, req.id, false, undefined, "Missing sessionId or data");
-            return;
-        }
-
-        try {
-            this.config.ptyManager.write(sessionId, data);
-            this.sendResponse(ws, req.id, true, { ok: true });
-        } catch (err: any) {
-            logger.error("Failed to write to terminal", { sessionId, error: err.message });
-            this.sendResponse(ws, req.id, false, undefined, err.message);
-        }
-    }
-
-    // ── terminal.resize ─────────────────────────────────────────
-
-    private handleTerminalResize(ws: WebSocket, req: WsRequest): void {
-        const { sessionId, rows, cols } = req.params as {
-            sessionId: string;
-            rows: number;
-            cols: number;
-        };
-
-        if (!sessionId || !rows || !cols) {
-            this.sendResponse(ws, req.id, false, undefined, "Missing sessionId, rows, or cols");
-            return;
-        }
-
-        try {
-            this.config.ptyManager.resize(sessionId, rows, cols);
-            this.sendResponse(ws, req.id, true, { ok: true });
-        } catch (err: any) {
-            logger.error("Failed to resize terminal", { sessionId, error: err.message });
-            this.sendResponse(ws, req.id, false, undefined, err.message);
-        }
-    }
-
-    // ── terminal.kill ───────────────────────────────────────────
-
-    private async handleTerminalKill(ws: WebSocket, req: WsRequest): Promise<void> {
-        const { sessionId } = req.params as { sessionId: string };
-
-        if (!sessionId) {
-            this.sendResponse(ws, req.id, false, undefined, "Missing sessionId");
-            return;
-        }
-
-        try {
-            this.config.ptyManager.kill(sessionId);
-
-            // Update status in Convex
-            await this.config.convexMutate("agent:updateTerminalStatus", {
-                sessionId,
-                status: "exited",
-                exitCode: 143, // SIGTERM
-            });
-
-            this.sendResponse(ws, req.id, true, { ok: true });
-
-            // Broadcast exit event
-            this.broadcast({
-                type: "event",
-                event: "terminal.exit",
-                payload: {
-                    sessionId,
-                    exitCode: 143,
-                },
-            });
-        } catch (err: any) {
-            logger.error("Failed to kill terminal", { sessionId, error: err.message });
-            this.sendResponse(ws, req.id, false, undefined, err.message);
-        }
-    }
 }
+

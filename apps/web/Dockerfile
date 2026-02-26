@@ -1,16 +1,17 @@
 # ── Stage 1: Install dependencies ────────────────────────────────────────────
-FROM oven/bun:1.1.0 AS deps
+FROM oven/bun:1.2 AS deps
 WORKDIR /app
 
 # Copy workspace manifests only (for layer caching)
 COPY package.json bun.lock ./
 COPY apps/web/package.json ./apps/web/
+COPY apps/agent/package.json ./apps/agent/
 COPY packages/convex/package.json ./packages/convex/
 
 RUN bun install --frozen-lockfile
 
 # ── Stage 2: Build ────────────────────────────────────────────────────────────
-FROM oven/bun:1.1.0 AS builder
+FROM oven/bun:1.2 AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -26,7 +27,9 @@ ENV NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL \
     NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
     NODE_ENV=production
 
-RUN bun --cwd apps/web run build
+WORKDIR /app/apps/web
+RUN bun run build
+WORKDIR /app
 
 # ── Stage 3: Minimal runtime image ───────────────────────────────────────────
 FROM node:20-slim AS runner

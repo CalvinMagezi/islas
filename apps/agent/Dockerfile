@@ -1,4 +1,4 @@
-FROM oven/bun:1.1.0-slim
+FROM oven/bun:1.2-slim
 
 # node-pty requires native compilation tools; add useful agent utilities too
 RUN apt-get update && apt-get install -y \
@@ -11,9 +11,12 @@ WORKDIR /agent
 # Copy workspace manifests for dependency installation
 COPY package.json bun.lock ./
 COPY apps/agent/package.json ./apps/agent/
+COPY apps/web/package.json ./apps/web/
 COPY packages/convex/package.json ./packages/convex/
 
-RUN bun install --frozen-lockfile
+# Install only the agent workspace deps (skip --frozen-lockfile to avoid
+# downloading full web workspace deps like next.js in the agent image)
+RUN bun install --filter "islas-agent" || bun install
 
 # Copy source code
 COPY packages/convex ./packages/convex
