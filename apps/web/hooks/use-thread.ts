@@ -10,15 +10,10 @@ export function useThread() {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [filter, setFilter] = useState<ThreadFilter>("active");
 
-  // @ts-ignore — TS2589: deep type instantiation in generated Convex API
   const threads = useQuery(api.chat.listThreads, { status: filter }) ?? [];
-  // @ts-ignore — TS2589
   const createThreadMutation = useMutation(api.chat.createThread);
-  // @ts-ignore — TS2589
   const archiveThreadMutation = useMutation(api.chat.archiveThread);
-  // @ts-ignore — TS2589
   const softDeleteThreadMutation = useMutation(api.chat.softDeleteThread);
-  // @ts-ignore — TS2589
   const restoreThreadMutation = useMutation(api.chat.restoreThread);
 
   const createThread = useCallback(async () => {

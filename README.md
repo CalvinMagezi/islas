@@ -1,136 +1,169 @@
-# Islas
-
-A personal AI agent orchestration hub with real-time web interface and local worker agent.
-
-## Features
-
-- **Real-time AI Agent**: Chat with an intelligent agent powered by OpenRouter models
-- **Web Interface**: Next.js 16 PWA with generative UI components
-- **Local Worker**: Pi SDK-powered agent that executes tasks on your machine
-- **Notebooks**: Organize notes, projects, and context for your agent
-- **Vector Search**: Semantic search across your notes using OpenAI embeddings
-- **Secure**: Single-user authentication with API key management
-- **Real-time**: Serverless backend powered by Convex with instant updates
-- **Self-hostable**: Full VPS deployment via Docker Compose with self-hosted Convex
-
-## Deployment Options
-
-| | Local Dev | VPS (Self-Hosted) | Cloud |
-|---|---|---|---|
-| **Backend** | Convex cloud (dev) | Self-hosted Convex | Convex cloud |
-| **Web app** | `localhost:3000` | Docker + Caddy (HTTPS) | Vercel |
-| **Agent** | Local machine | Docker container | Local machine |
-| **Cost** | Free tier | VPS only | Convex + Vercel |
+<div align="center">
+  <img src="apps/web/public/oakstone-logo.svg" alt="Oakstone Capital" width="360" />
+  <br/><br/>
+  <h1>Oakstone AI OS</h1>
+  <p><strong>Intelligence Service Layer As a Service — powered by Islas</strong></p>
+  <p>The internal operating system of Oakstone Capital: a coherent intelligence layer connecting data, tools, and workflows to augment institutional decision-making.</p>
+</div>
 
 ---
 
-## Option 1: VPS / Self-Hosted (Docker Compose)
+## What This Is
 
-Deploy the entire stack on your own server with automatic HTTPS via Caddy and no cloud dependencies.
+Oakstone AI OS is a customized deployment of [Islas](https://github.com/yourusername/islas) — a generative UI agent hub — configured specifically as the **Intelligence Service Layer** for Oakstone Capital's multi-asset investment and advisory operations.
 
-### Architecture
+It implements the 5-layer AI OS architecture described at `oakstone.capital/technology/ai-os`:
+
+| Layer | What it maps to |
+|-------|----------------|
+| **Experience** | Generative UI chat with domain-specific tool components |
+| **Workflow** | Agent job queue with approval workflows and interactive jobs |
+| **Intelligence** | LLM orchestration via OpenRouter (100+ models, configurable) |
+| **Data** | KnowledgeHub: RAG over financial documents via vector search |
+| **Integration** | MCP server, HTTP API, API key management, audit logging |
+
+---
+
+## Mini-App Suite (POC)
+
+| App | What it does |
+|-----|-------------|
+| **KnowledgeHub** | Upload IMs, pitch decks, reports → semantic search via `openai/text-embedding-3-small` over OpenRouter |
+| **DealRoom AI** | Paste a deal summary → structured analysis: exec summary, key terms, risk/mitigant matrix |
+| **Deal Pipeline** | Kanban view of all deals by stage (screening → IC review → closed), filterable by vertical |
+| **Portfolio View** | Live portfolio grid grouped by the 6 investment verticals |
+| **MacroLens** | Market brief generator combining Brave Search + stored market notes |
+| **ReportBot** | Automated portfolio summary, market update, and pipeline status reports |
+
+---
+
+## Architecture
+
+Islas is a Bun monorepo. Oakstone-specific configuration lives in `config/oakstone.ts` and is activated via the `TENANT_CONFIG=oakstone` environment variable.
+
+```
+.
+├── config/
+│   ├── oakstone.ts            # Brand, persona, features, glossary
+│   └── index.ts               # Config loader (reads TENANT_CONFIG)
+├── apps/
+│   ├── web/                   # Next.js 16 PWA — Oakstone-themed UI
+│   └── agent/                 # Local Pi SDK worker
+├── packages/
+│   └── convex/convex/
+│       ├── agents/orchestrator.ts   # Oakstone AI OS agent persona
+│       ├── tools/oakstonTools.ts    # 8 financial intelligence tools
+│       ├── functions/documents.ts   # Document ingestion pipeline
+│       ├── functions/oakstoneDeals.ts  # Deal CRUD
+│       └── chat/searchDocuments.ts  # Vector search over KnowledgeHub
+├── docker-compose.yml         # Production VPS stack
+├── docker/
+│   ├── Caddyfile              # Reverse proxy + auto-HTTPS
+│   ├── .env.example           # Config template
+│   └── setup.sh               # VPS first-run script
+└── scripts/
+    └── seed-oakstone.ts       # Seed portfolio, notebooks, context
+```
+
+### Deployment topology
 
 ```
 Internet (HTTPS 443)
     │
     ▼
-Caddy (reverse proxy + Let's Encrypt)
-    ├── yourdomain.com          → web:3000         (Next.js PWA)
-    ├── api.yourdomain.com      → convex:3210      (Convex WebSocket + HTTP)
-    ├── actions.yourdomain.com  → convex:3211      (Convex HTTP actions / MCP)
-    └── dash.yourdomain.com     → dashboard:6791   (Convex admin, basic auth)
-
-Docker internal network:
-    web   ──► convex:3210
-    agent ──► convex:3210
+Caddy (Let's Encrypt)
+    ├── ai.oakstonecapital.com        → web:3000      (Oakstone AI OS)
+    ├── api.ai.oakstonecapital.com    → convex:3210   (Convex WebSocket + HTTP)
+    ├── actions.ai.oakstonecapital.com → convex:3211  (HTTP actions / MCP)
+    └── dash.ai.oakstonecapital.com   → dashboard     (Admin, basic auth)
 ```
 
 ### Services
 
 | Service | Image | Purpose |
 |---------|-------|---------|
-| `convex` | `ghcr.io/get-convex/convex-backend` | Self-hosted Convex backend |
+| `convex` | `ghcr.io/get-convex/convex-backend` | Self-hosted Convex (DB + subscriptions) |
 | `dashboard` | `ghcr.io/get-convex/convex-dashboard` | Convex admin UI |
-| `convex-deploy` | `node:20-slim` (one-shot) | Deploys schema on first run |
-| `web` | Built from `apps/web/Dockerfile` | Next.js PWA |
-| `agent` | Built from `apps/agent/Dockerfile` | Local worker agent |
+| `convex-deploy` | `node:20-slim` (one-shot) | Schema deployment |
+| `web` | `apps/web/Dockerfile` | Oakstone AI OS web app |
+| `agent` | `apps/agent/Dockerfile` | Local Pi SDK worker |
 | `caddy` | `caddy:2-alpine` | Reverse proxy + auto-HTTPS |
+
+---
+
+## VPS Deployment
 
 ### Prerequisites
 
-- A VPS with Docker and Docker Compose v2 installed
-- A domain with DNS A records pointing to your VPS:
-  - `yourdomain.com`
-  - `api.yourdomain.com`
-  - `actions.yourdomain.com`
-  - `dash.yourdomain.com`
+- VPS with Docker + Docker Compose v2 (recommended: Hetzner CPX31 — 4 vCPU, 8GB RAM)
+- Domain with DNS A records pointing to your VPS IP:
+  - `ai.oakstonecapital.com`
+  - `api.ai.oakstonecapital.com`
+  - `actions.ai.oakstonecapital.com`
+  - `dash.ai.oakstonecapital.com`
 
-### Setup
+### Server setup
 
 ```bash
-# 1. Clone the repo on your VPS
-git clone https://github.com/yourusername/islas.git
-cd islas
-
-# 2. Copy and fill in environment variables
-cp docker/.env.example .env
-nano .env   # set DOMAIN, ACCESS_PASSPHRASE, OPENROUTER_API_KEY, etc.
-
-# 3. Run the first-time setup script
-#    (starts Convex, generates admin key, deploys schema, starts all services)
-./docker/setup.sh
+apt update && apt upgrade -y
+apt install -y docker.io docker-compose-v2 git ufw
+ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw enable
 ```
 
-After setup your stack is live at:
-- `https://yourdomain.com` — Web app
-- `https://dash.yourdomain.com` — Convex dashboard (basic auth)
+### Deploy
 
-### Environment Variables
+```bash
+# 1. Clone and configure
+git clone https://github.com/yourusername/islas.git /opt/islas
+cd /opt/islas
+cp docker/.env.example .env
+nano .env   # Fill in DOMAIN, ACCESS_PASSPHRASE, OPENROUTER_API_KEY, etc.
+
+# 2. First-time setup (starts Convex, generates admin key, deploys schema, starts all services)
+./docker/setup.sh
+
+# 3. Set Convex runtime env vars in the dashboard
+# Navigate to https://dash.ai.oakstonecapital.com
+# Set: OPENROUTER_API_KEY, DEFAULT_MODEL, ISLAS_API_KEY, BRAVE_SEARCH_API_KEY
+
+# 4. Seed initial data
+bun scripts/seed-oakstone.ts
+```
+
+### Environment variables
 
 Copy `docker/.env.example` to `.env` and fill in:
 
 ```bash
-DOMAIN=yourdomain.com
+DOMAIN=ai.oakstonecapital.com
+TENANT_CONFIG=oakstone
 
 # Generated by setup.sh
 CONVEX_ADMIN_KEY=
 
+# Single-user auth (32+ chars)
 ACCESS_PASSPHRASE=your-strong-passphrase-32-chars-minimum
 
-# Push notifications (generate with: npx web-push generate-vapid-keys)
+# Web Push (npx web-push generate-vapid-keys)
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 
-# Agent
+# Single API key covers ALL AI: LLM calls + embeddings (openai/text-embedding-3-small)
+# No separate OPENAI_API_KEY required — OpenRouter handles both.
 OPENROUTER_API_KEY=
 ISLAS_API_KEY=local-master-key
-WORKER_SECRET=          # openssl rand -hex 32
-DEFAULT_MODEL=moonshotai/kimi-k2.5
+WORKER_SECRET=              # openssl rand -hex 32
+DEFAULT_MODEL=anthropic/claude-sonnet-4-5
 MCP_GATEWAY_TOKEN=
 
 # Caddy dashboard auth
 DASHBOARD_USER=admin
-DASHBOARD_PASSWORD_HASH=   # docker run --rm caddy:2-alpine caddy hash-password --plaintext yourpassword
+DASHBOARD_PASSWORD_HASH=    # docker run --rm caddy:2-alpine caddy hash-password --plaintext yourpassword
 ```
 
-### Agent Skills Volume
-
-The agent's `skills/` directory is mounted as a Docker volume (`agent_skills`). Skills created at runtime via the `skill-creator` meta-skill persist across restarts without rebuilding the container.
+### Common operations
 
 ```bash
-# View current skills
-docker compose exec agent ls skills/
-
-# Restart agent only (picks up new skills)
-docker compose restart agent
-```
-
-### Common Operations
-
-```bash
-# Start all services
-docker compose up -d
-
 # View logs
 docker compose logs -f
 
@@ -140,181 +173,132 @@ docker compose up -d --build web agent
 # Redeploy Convex schema after backend changes
 docker compose run --rm convex-deploy
 
+# Restart agent only (picks up new skills)
+docker compose restart agent
+
 # Stop everything
 docker compose down
 ```
 
 ---
 
-## Option 2: Local Development
+## KnowledgeHub: Document Ingestion
+
+Upload financial documents via the chat UI's paperclip button. Supported types:
+- PDF (Investment Memoranda, pitch decks, reports, contracts)
+- DOCX, TXT (market commentaries, memos)
+
+**Ingestion pipeline**: File → Convex Storage → text extraction → chunking (2000 chars, 200 overlap) → embedding via `openai/text-embedding-3-small` on OpenRouter → stored in `oakstoneDocs` vector index.
+
+**Search**: Hybrid vector + keyword search — the agent calls `searchDocuments` which generates a query embedding via OpenRouter and runs `ctx.vectorSearch` against the index.
+
+---
+
+## AI Model Configuration
+
+The model is configurable per-conversation. Set the default via `DEFAULT_MODEL` in Convex dashboard. OpenRouter gives access to 100+ models:
+
+```bash
+# High quality (recommended)
+anthropic/claude-sonnet-4-5
+anthropic/claude-opus-4-6
+
+# Fast & cost-effective
+anthropic/claude-haiku-4-5
+moonshotai/kimi-k2.5
+
+# Alternative
+openai/gpt-4o
+google/gemini-2.5-pro
+```
+
+---
+
+## Local Development
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) v1.1.0+
+- [Bun](https://bun.sh) v1.2+
 - A [Convex](https://convex.dev) account (free tier)
 
-### Installation
+### Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/islas.git
-cd islas
-
-# Install dependencies
 bun install
-
-# Set up the CLI and environment
-./hq.sh setup
-
-# Start development servers
-bun run dev
+cp apps/web/.env.local.example apps/web/.env.local    # fill in Convex URL + passphrase
+cp apps/agent/.env.local.example apps/agent/.env.local
+bun run dev    # starts web + agent + convex
 ```
 
-### Commands
-
-The `hq` CLI provides all the tools you need:
+### Local Docker stack
 
 ```bash
-hq setup          # One-command global install (symlink + deps + optional daemon)
-hq doctor         # Pre-flight diagnostics (deps, env vars, connectivity)
-hq dev [dir]      # Start full dev stack (convex + web + agent) in foreground
-hq start [dir]    # Start daemon + open log monitor + web UI
-hq stop           # Stop agent daemon
-hq restart [dir]  # Restart agent daemon
-hq run "task"     # Dispatch a task to the agent from the CLI
-hq open           # Open the web UI in browser
-hq status         # Show daemon status with resource usage
-hq health         # Deep health check (PID + Convex heartbeat + env validation)
-hq logs [-f]      # View agent logs (-f to follow)
-hq install        # Install as system service (launchd/systemd)
-hq uninstall      # Remove system service
+# Start full local stack (no domain/Caddy required)
+docker compose -f docker-compose.local.yml up -d
+
+# Deploy schema to local Convex
+cd packages/convex && bunx convex deploy --yes
 ```
 
-### Development Environment Variables
-
-**Web App** (`apps/web/.env.local`):
-```bash
-CONVEX_DEPLOYMENT=              # From Convex dashboard
-NEXT_PUBLIC_CONVEX_URL=         # Public Convex endpoint
-NEXT_PUBLIC_ACCESS_PASSPHRASE=  # Single-user passphrase (32+ chars)
-```
-
-**Agent** (`apps/agent/.env.local`):
-```bash
-NEXT_PUBLIC_CONVEX_URL=    # Convex endpoint (same as web)
-OPENROUTER_API_KEY=        # For LLM model access
-ISLAS_API_KEY=             # API key for Convex HTTP actions (default: "local-master-key")
-DEFAULT_MODEL=             # LLM model ID (default: "moonshotai/kimi-k2.5")
-TARGET_DIR=                # Agent working directory (default: CWD)
-```
-
-**Convex Backend** (set in Convex dashboard):
-```bash
-OPENROUTER_API_KEY=        # For AI model access via OpenRouter
-DEFAULT_MODEL=             # e.g., "anthropic/claude-sonnet-4-5"
-```
-
-### Dev Commands
+### Dev commands
 
 ```bash
-bun run dev      # Start all services (web + agent + convex)
-bun run web      # Web app only
+bun run dev      # All services via Turborepo
+bun run web      # Web app only (localhost:3000)
 bun run agent    # Local worker agent only
-bun run build    # Workspace-wide production build
+bun run build    # Production build
 bun run lint     # Lint all packages
 ```
 
 ---
 
-## Option 3: Cloud (Vercel + Convex)
+## Tech Stack
 
-Deploy the web app to Vercel while keeping the agent local.
-
-**Web App (Vercel)**:
-```bash
-vercel
-# Or connect your GitHub repo to Vercel for automatic deployments
-```
-
-**Backend (Convex)**:
-```bash
-cd packages/convex
-npx convex deploy
-```
-
-**Agent** — runs on your local machine as a system service:
-```bash
-hq install    # Installs as launchd (macOS) or systemd (Linux) service
-hq status     # Check if it's running
-```
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, Next.js 16, Tailwind CSS v4, shadcn/ui |
+| Backend | Convex (self-hosted), `@convex-dev/agent`, `@convex-dev/auth` |
+| Agent | Pi SDK (`@mariozechner/pi-coding-agent`), Bun |
+| AI / LLM | OpenRouter API (LLM + embeddings — single key) |
+| Embeddings | `openai/text-embedding-3-small` via OpenRouter (1536-dim) |
+| Search | Convex vector index + full-text search |
+| Proxy | Caddy (automatic HTTPS via Let's Encrypt) |
+| Monorepo | Turborepo + Bun workspaces |
 
 ---
 
-## Architecture
+## Investment Verticals
 
-Islas is a Bun monorepo with three main components:
+Oakstone operates across 6 verticals, all supported in the deal pipeline, portfolio view, and document tagging:
 
-```
-.
-├── apps/
-│   ├── web/              # Next.js 16 PWA (frontend)
-│   └── agent/            # Local worker agent (Pi SDK)
-├── packages/
-│   └── convex/           # Shared Convex backend
-├── docker-compose.yml    # VPS deployment
-├── docker/
-│   ├── Caddyfile         # Reverse proxy config
-│   ├── .env.example      # Environment template
-│   └── setup.sh          # VPS first-run script
-└── turbo.json            # Local dev pipeline
-```
+- **Credit** — Private credit & structured finance
+- **Venture** — Early & growth-stage tech/infrastructure
+- **Absolute Return** — Opportunistic multi-strategy
+- **Real Assets** — Energy, industrials, utilities, logistics
+- **Digital Assets** — Via Boolean platform
+- **Listed Assets** — Equities, fixed income, ETFs
 
-### Web App (`apps/web`)
+---
 
-Next.js 16 PWA with:
-- Chat interface with generative UI tool components
-- Real-time updates via Convex subscriptions
-- Notebook and semantic search interfaces
-- Web Push notifications
+## Implementation Roadmap
 
-### Local Agent (`apps/agent`)
-
-Pi SDK-powered worker that:
-- Polls Convex for pending jobs
-- Executes tasks with local file and shell access
-- Streams logs and results back to the web UI
-- Supports background, RPC, and interactive job modes
-- Self-grows via the `skill-creator` meta-skill
-
-### Shared Backend (`packages/convex`)
-
-Convex serverless backend with:
-- Real-time database and subscriptions
-- AI agent orchestration (`@convex-dev/agent`)
-- Background workflows (`@convex-dev/workflow`)
-- Vector search for semantic note lookup
-- MCP gateway (JSON-RPC 2.0 over HTTP)
-- Authentication and API key management
+| Phase | Timeline | Focus |
+|-------|----------|-------|
+| **Phase 1 (current)** | 0–6 months | KnowledgeHub, Deal Co-Pilot, Portfolio View, MacroLens (basic), ReportBot |
+| **Phase 2** | 6–18 months | Impala API integration (MacroLens), CreditBrain ML scoring, automated reporting |
+| **Phase 3** | 18–36 months | LP dashboards, ClimateDesk, on-chain data via Boolean |
 
 ---
 
 ## Security
 
-- **Single-user mode**: Simplified passphrase-based authentication
-- **API key management**: SHA-256 hashed keys with rate limiting
-- **Security profiles**: Configurable tool permissions for the local agent (`MINIMAL` / `STANDARD` / `ADMIN`)
-- **Agent sandbox**: In Docker deployments the agent operates in an isolated `/workspace` volume
-- **Audit logging**: All agent actions are logged
+- **Single-user mode**: Passphrase-based auth (httpOnly cookie, 30-day session)
+- **API key management**: SHA-256 hashed keys with rate limiting (120 req/min)
+- **Agent security profiles**: `MINIMAL` / `STANDARD` / `GUARDED` / `ADMIN` per-job
+- **Agent sandbox**: Isolated `/workspace` volume in Docker deployments
+- **Approval workflows**: Human-in-the-loop gates for destructive or high-risk actions
+- **MCP audit log**: Full audit trail for all Claude Code / external integrations
 
-## Tech Stack
+---
 
-- **Frontend**: React 19, Next.js 16, Tailwind CSS v4, shadcn/ui, AI SDK
-- **Backend**: Convex, `@convex-dev/agent`, `@convex-dev/auth`
-- **Agent**: Pi SDK (`@mariozechner/pi-coding-agent`), TypeScript, Bun
-- **AI**: OpenRouter API, OpenAI embeddings (1536-dim vectors)
-- **Proxy**: Caddy (automatic HTTPS via Let's Encrypt)
-- **Monorepo**: Turborepo, Bun workspaces
-
-## License
-
-MIT
+*Built on [Islas](https://github.com/yourusername/islas) — open-source generative UI agent infrastructure.*

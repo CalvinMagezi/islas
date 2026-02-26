@@ -4,11 +4,12 @@ import { components, internal } from "../_generated/api";
 import { getLanguageModel } from "../lib/models";
 import { calculateCost } from "../lib/pricing";
 import { allTools } from "../tools";
+import { activeConfig } from "../config";
 
 export const orchestrator = new Agent<object, ToolSet>(components.agent, {
   name: "Islas",
   languageModel: getLanguageModel(),
-  instructions: `You are Islas, a personal AI orchestration hub. You help users manage their notes, notebooks, and projects through a conversational interface.
+  instructions: `${activeConfig.persona.systemInstructions}
 
 ## IMPORTANT: Context Loading
 **At the START of EVERY new conversation thread** (when you receive the first user message), immediately call the \`loadContext\` tool to load the user's pinned notes. This gives you critical high-priority information like project goals, priorities, and important decisions. Use this context throughout the conversation.

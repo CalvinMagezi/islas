@@ -55,6 +55,10 @@
   --color-glass-border: var(--glass-border);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
+  --color-oakstone-blue: var(--oakstone-blue);
+  --color-oakstone-gold: var(--oakstone-gold);
+  --color-oakstone-light-blue: var(--oakstone-light-blue);
+  --color-oakstone-secondary: var(--oakstone-secondary);
 }
 
 :root {
@@ -65,13 +69,19 @@
   --card-foreground: oklch(0.145 0.005 260);
   --popover: oklch(0.98 0.003 240);
   --popover-foreground: oklch(0.145 0.005 260);
-  --primary: oklch(0.55 0.2 230);
+  
+  --oakstone-blue: #0A1628;
+  --oakstone-gold: #C9A84C;
+  --oakstone-light-blue: #4A9FD8;
+  --oakstone-secondary: #132240;
+
+  --primary: var(--oakstone-blue);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.95 0.01 240);
   --secondary-foreground: oklch(0.2 0.02 260);
   --muted: oklch(0.95 0.01 240);
   --muted-foreground: oklch(0.5 0.02 260);
-  --accent: oklch(0.93 0.015 270);
+  --accent: var(--oakstone-gold);
   --accent-foreground: oklch(0.2 0.02 260);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.9 0.01 240);
@@ -107,13 +117,19 @@
   --card-foreground: oklch(0.93 0.01 240);
   --popover: oklch(0.14 0.018 260);
   --popover-foreground: oklch(0.93 0.01 240);
-  --primary: oklch(0.75 0.15 195);
+  
+  --oakstone-blue: #0A1628;
+  --oakstone-gold: #C9A84C;
+  --oakstone-light-blue: #4A9FD8;
+  --oakstone-secondary: #132240;
+
+  --primary: var(--oakstone-gold); /* Using gold for primary in dark mode to stand out */
   --primary-foreground: oklch(0.1 0.015 260);
   --secondary: oklch(0.18 0.022 260);
   --secondary-foreground: oklch(0.9 0.01 240);
   --muted: oklch(0.18 0.022 260);
   --muted-foreground: oklch(0.55 0.025 250);
-  --accent: oklch(0.2 0.028 270);
+  --accent: var(--oakstone-blue); /* Inverse for dark mode */
   --accent-foreground: oklch(0.9 0.01 240);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 7%);

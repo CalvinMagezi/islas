@@ -403,4 +403,73 @@ export default defineSchema({
     .index("by_worker", ["workerId"])
     .index("by_name", ["name"]),
 
+  // ==========================================
+  // OAKSTONE POC TABLES
+  // ==========================================
+
+  oakstoneDocs: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    content: v.string(),
+    docType: v.union(
+      v.literal("im"),
+      v.literal("pitch_deck"),
+      v.literal("financial_model"),
+      v.literal("report"),
+      v.literal("contract"),
+      v.literal("memo"),
+      v.literal("market_brief"),
+      v.literal("other"),
+    ),
+    vertical: v.optional(v.union(
+      v.literal("Credit"),
+      v.literal("Venture"),
+      v.literal("Absolute Return"),
+      v.literal("Real Assets"),
+      v.literal("Digital Assets"),
+      v.literal("Listed Assets")
+    )),
+    companyName: v.optional(v.string()),
+    sourceFileId: v.optional(v.id("_storage")),
+    chunkIndex: v.optional(v.number()),
+    totalChunks: v.optional(v.number()),
+    embedding: v.optional(v.array(v.float64())),
+    embeddingStatus: v.optional(v.union(v.literal("pending"), v.literal("embedded"), v.literal("failed"))),
+    tags: v.array(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_docType", ["docType"])
+    .index("by_vertical", ["vertical"])
+    .index("by_embeddingStatus", ["embeddingStatus"])
+    .vectorIndex("by_embedding", { vectorField: "embedding", dimensions: 1536, filterFields: ["docType", "vertical", "embeddingStatus"] })
+    .searchIndex("search_content", { searchField: "content", filterFields: ["docType", "vertical", "userId"] }),
+
+  oakstoneDeals: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    vertical: v.union(
+      v.literal("Credit"),
+      v.literal("Venture"),
+      v.literal("Absolute Return"),
+      v.literal("Real Assets"),
+      v.literal("Digital Assets"),
+      v.literal("Listed Assets")
+    ),
+    status: v.union(v.literal("screening"), v.literal("due_diligence"), v.literal("ic_review"), v.literal("approved"), v.literal("passed"), v.literal("closed")),
+    companyName: v.string(),
+    sector: v.optional(v.string()),
+    geography: v.optional(v.string()),
+    dealSize: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    riskNotes: v.optional(v.string()),
+    relatedDocIds: v.optional(v.array(v.string())),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_vertical", ["vertical"]),
+
 });

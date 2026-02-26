@@ -29,8 +29,10 @@ const crimsonText = Crimson_Text({
   subsets: ["latin"],
 });
 
+import { activeConfig } from "../../../../config";
+
 export const metadata: Metadata = {
-  title: "Islas",
+  title: activeConfig.brand.name,
   description: "Personal AI agent orchestration hub",
   manifest: "/manifest.json",
 };

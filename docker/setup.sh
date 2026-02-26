@@ -26,7 +26,7 @@ source .env
 [ -z "${ACCESS_PASSPHRASE:-}" ]  && err "ACCESS_PASSPHRASE is not set in .env"
 [ -z "${OPENROUTER_API_KEY:-}" ] && err "OPENROUTER_API_KEY is not set in .env"
 
-log "Starting Islas setup for domain: $DOMAIN"
+log "Starting Islas setup for domain: $DOMAIN (Tenant: ${TENANT_CONFIG:-oakstone})"
 
 # ── Step 1: Start Convex backend only ─────────────────────────────────────────
 log "Starting Convex backend..."
@@ -78,5 +78,6 @@ echo ""
 echo "  Web app:    https://$DOMAIN"
 echo "  Convex API: https://api.$DOMAIN"
 echo "  Dashboard:  https://dash.$DOMAIN"
+echo "  Tenant:     ${TENANT_CONFIG:-oakstone}"
 echo ""
 log "Run 'docker compose logs -f' to tail logs."

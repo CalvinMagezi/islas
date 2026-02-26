@@ -45,6 +45,7 @@ services:
         NEXT_PUBLIC_CONVEX_URL: https://api.${DOMAIN}
         NEXT_PUBLIC_ACCESS_PASSPHRASE: ${ACCESS_PASSPHRASE}
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+        NEXT_PUBLIC_TENANT_CONFIG: ${TENANT_CONFIG:-oakstone}
     restart: unless-stopped
     depends_on:
       - convex
@@ -62,6 +63,7 @@ services:
     environment:
       - NEXT_PUBLIC_CONVEX_URL=http://convex:3210
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - TENANT_CONFIG=${TENANT_CONFIG:-oakstone}
       - ISLAS_API_KEY=${ISLAS_API_KEY}
       - WORKER_SECRET=${WORKER_SECRET}
       - DEFAULT_MODEL=${DEFAULT_MODEL:-moonshotai/kimi-k2.5}

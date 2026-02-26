@@ -21,6 +21,13 @@ import { WebSearchResult } from "@/components/tools/web-search-result";
 import { ContextLoaded } from "@/components/tools/context-loaded";
 // Approval tools
 import { ApprovalCard } from "@/components/tools/approval-card";
+// Oakstone tools
+import { PortfolioView } from "@/components/tools/PortfolioView";
+import { DealAnalysis } from "@/components/tools/DealAnalysis";
+import { DealPipeline } from "@/components/tools/DealPipeline";
+import { MarketBrief } from "@/components/tools/MarketBrief";
+import { DocumentSearch } from "@/components/tools/DocumentSearch";
+import { ReportView } from "@/components/tools/ReportView";
 
 export interface ToolResultProps {
   data: unknown;
@@ -61,6 +68,13 @@ const TOOL_COMPONENT_MAP: Record<string, ComponentType<ToolResultProps>> = {
   // Approval tools
   requestApproval: ApprovalCard,
   checkApproval: ActionConfirmation,
+  // Oakstone tools
+  showPortfolio: PortfolioView,
+  analyzeDeal: DealAnalysis,
+  showDealPipeline: DealPipeline,
+  showMarketBrief: MarketBrief,
+  searchDocuments: DocumentSearch,
+  generateReport: ReportView,
 };
 
 export function ToolResultPart({

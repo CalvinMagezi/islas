@@ -1,4 +1,15 @@
 import type { ToolSet } from "ai";
+import { activeConfig } from "../config";
+import {
+  searchDocuments,
+  analyzeDeal,
+  generateMemo,
+  trackDeal,
+  showPortfolio,
+  showMarketBrief,
+  generateReport,
+  showDealPipeline,
+} from "./oakstonTools";
 import {
   showDashboard,
   showMemories,
@@ -55,4 +66,11 @@ export const allTools: ToolSet = {
   // Approval tools — human-in-the-loop safety
   requestApproval,
   checkApproval,
+
+  // Oakstone POC Tools (conditionally registered)
+  ...(activeConfig.features.knowledgeHub ? { searchDocuments } : {}),
+  ...(activeConfig.features.dealRoomAI ? { analyzeDeal, generateMemo, trackDeal, showDealPipeline } : {}),
+  ...(activeConfig.features.portfolioView ? { showPortfolio } : {}),
+  ...(activeConfig.features.macroLens ? { showMarketBrief } : {}),
+  ...(activeConfig.features.reportBot ? { generateReport } : {}),
 };

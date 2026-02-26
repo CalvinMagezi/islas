@@ -10,7 +10,7 @@ import {
   Send, Bot, User, Loader2, Wrench, XCircle, Plus, MessageSquare,
   History, ChevronDown, ChevronUp, Shield, Zap, Brain, X,
   CheckCircle2, Clock, AlertTriangle, Compass, Navigation,
-  CircleStop, CornerDownRight, Sparkles, Terminal, Wifi, WifiOff,
+  CircleStop, CornerDownRight, Sparkles, Terminal, Wifi, WifiOff, UploadCloud,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -21,6 +21,7 @@ import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { useAgentWs } from "@/hooks/use-agent-ws";
+import { DocumentUpload } from "@/components/chat/DocumentUpload";
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(false);
@@ -117,6 +118,7 @@ export default function Home() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [steerInput, setSteerInput] = useState("");
   const [showSteerInput, setShowSteerInput] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   // Advanced job options
   const [securityProfile, setSecurityProfile] = useState<string>("standard");
@@ -214,7 +216,7 @@ export default function Home() {
           const runningTool = tools.findLast(t => t.status === "running");
           if (runningTool) runningTool.status = "complete";
         }
-      } catch {}
+      } catch { }
     });
     return tools.filter(t => t.status === "running");
   }, [jobLogs]);
@@ -386,8 +388,8 @@ export default function Home() {
                       <span className={cn(
                         "text-[9px] font-display uppercase tracking-wider px-1 py-0.5 rounded",
                         job.securityProfile === "admin" ? "bg-destructive/10 text-destructive" :
-                        job.securityProfile === "minimal" ? "bg-blue-500/10 text-blue-400" :
-                        "bg-amber-500/10 text-amber-400"
+                          job.securityProfile === "minimal" ? "bg-blue-500/10 text-blue-400" :
+                            "bg-amber-500/10 text-amber-400"
                       )}>
                         {job.securityProfile}
                       </span>
@@ -462,8 +464,8 @@ export default function Home() {
                 <span className={cn(
                   "h-2 w-2 rounded-full",
                   agent.connected ? (agent.busy ? "bg-amber-400" : "bg-emerald-400") :
-                  workerStatus?.status === "online" ? "bg-emerald-400/50" :
-                  "bg-muted-foreground/30"
+                    workerStatus?.status === "online" ? "bg-emerald-400/50" :
+                      "bg-muted-foreground/30"
                 )} />
                 {agent.connected && !agent.busy && (
                   <span className="absolute h-2 w-2 rounded-full bg-emerald-400 animate-heartbeat-ring" />
@@ -859,12 +861,25 @@ export default function Home() {
                 </Button>
 
                 <div className="flex-1 relative group">
+                  {showUpload && <DocumentUpload onClose={() => setShowUpload(false)} />}
+                  <div className="absolute left-1.5 top-1.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowUpload(!showUpload)}
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      title="Upload Financial Document"
+                    >
+                      <UploadCloud className="w-4.5 h-4.5" />
+                    </Button>
+                  </div>
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder={isWaitingForUser ? "Reply to HQ..." : agent.connected ? "Chat with HQ..." : "Message HQ..."}
-                    className="min-h-[48px] pr-14 bg-surface-raised border-border/30 group-focus-within:border-primary/30 group-focus-within:bg-background transition-all rounded-xl text-sm"
+                    className="min-h-[48px] pl-12 pr-14 bg-surface-raised border-border/30 group-focus-within:border-primary/30 group-focus-within:bg-background transition-all rounded-xl text-sm"
                     autoFocus
                   />
                   <div className="absolute right-3.5 bottom-3.5 flex items-center gap-2">
