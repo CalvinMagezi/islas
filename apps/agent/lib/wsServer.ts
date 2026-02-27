@@ -54,9 +54,10 @@ export class AgentWsServer {
     }
 
     start(): void {
+        const host = process.env.WS_HOST || "127.0.0.1";
         this.wss = new WebSocketServer({
             port: this.config.port,
-            host: "127.0.0.1",
+            host,
         });
 
         this.wss.on("connection", (ws) => {
@@ -82,7 +83,7 @@ export class AgentWsServer {
             logger.error("WS server error", { error: err.message });
         });
 
-        logger.info("WebSocket server started", { port: this.config.port, host: "127.0.0.1" });
+        logger.info("WebSocket server started", { port: this.config.port, host });
     }
 
     stop(): void {

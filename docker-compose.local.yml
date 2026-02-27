@@ -42,11 +42,22 @@ services:
     environment:
       - CONVEX_SELF_HOSTED_URL=http://convex:3210
       - CONVEX_SELF_HOSTED_ADMIN_KEY=${CONVEX_ADMIN_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-moonshotai/kimi-k2.5}
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY}
     volumes:
       - .:/app
     working_dir: /app/packages/convex
     command: >
-      sh -c "bun install && bunx convex deploy --yes"
+      sh -c "
+        bun install &&
+        bunx convex deploy --yes &&
+        bunx convex env set OPENROUTER_API_KEY \"$$OPENROUTER_API_KEY\" &&
+        bunx convex env set DEFAULT_MODEL \"$$DEFAULT_MODEL\" &&
+        bunx convex env set BRAVE_SEARCH_API_KEY \"$$BRAVE_SEARCH_API_KEY\" &&
+        bunx convex env set TENANT_CONFIG oakstone &&
+        echo '✅ Schema deployed and env vars set'
+      "
     restart: "no"
 
   # ── 4. Next.js web app ────────────────────────────────────────────────────
@@ -58,6 +69,7 @@ services:
         # NEXT_PUBLIC_* vars are baked into the client bundle at build time
         NEXT_PUBLIC_CONVEX_URL: http://127.0.0.1:3210
         NEXT_PUBLIC_ACCESS_PASSPHRASE: ${NEXT_PUBLIC_ACCESS_PASSPHRASE}
+        TENANT_CONFIG: oakstone
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -65,6 +77,7 @@ services:
       - agent_workspace:/workspace
     environment:
       - WORKSPACE_DIR=/workspace
+      - TENANT_CONFIG=oakstone
     depends_on:
       convex:
         condition: service_healthy
@@ -75,6 +88,8 @@ services:
       context: .
       dockerfile: apps/agent/Dockerfile
     restart: unless-stopped
+    ports:
+      - "5678:5678"
     depends_on:
       convex:
         condition: service_healthy
@@ -89,6 +104,7 @@ services:
       - TARGET_DIR=/workspace
       - MCP_GATEWAY_URL=http://convex:3211/mcp
       - MCP_GATEWAY_TOKEN=${MCP_GATEWAY_TOKEN}
+      - WS_HOST=0.0.0.0
     volumes:
       - agent_skills:/agent/apps/agent/skills
       - agent_workspace:/workspace

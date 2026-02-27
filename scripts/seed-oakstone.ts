@@ -14,9 +14,9 @@ if (!fs.existsSync(convexDir)) {
 }
 
 try {
-    console.log("Running Convex mutation `internal.functions.seed:seedOakstone`...");
-    // internal. prefix is required for internalMutation functions
-    execSync("bunx convex run internal.functions.seed:seedOakstone", {
+    console.log("Running Convex mutation `functions/seed:seedOakstone`...");
+    // Admin key authentication allows running internal functions
+    execSync("bunx convex run functions/seed:seedOakstone", {
         cwd: convexDir,
         stdio: "inherit",
     });

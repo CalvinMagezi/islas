@@ -1,8 +1,17 @@
 import { FileText, Search } from "lucide-react";
 import type { ToolResultProps } from "@/components/chat/tool-result-part";
 
+interface SearchResult {
+    title: string;
+    type: string;
+    vertical?: string;
+    score: number;
+    snippet?: string;
+    companyName?: string;
+}
+
 export function DocumentSearch({ data }: ToolResultProps) {
-    const { query, results } = data as { query: string, results?: unknown[] };
+    const { query, results } = data as { query: string; results?: SearchResult[] };
     // Using mock results for POC if none provided
     const searchResults = results && results.length > 0 ? results : [
         { title: "Project Phoenix IM", type: "im", vertical: "Real Assets", score: 0.95 },

@@ -29,7 +29,7 @@ const crimsonText = Crimson_Text({
   subsets: ["latin"],
 });
 
-import { activeConfig } from "../../../../config";
+import { activeConfig } from "../../../config";
 
 export const metadata: Metadata = {
   title: activeConfig.brand.name,

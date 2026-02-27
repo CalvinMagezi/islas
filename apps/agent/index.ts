@@ -202,7 +202,7 @@ async function setupAgent() {
             }),
         });
         wsServer.start();
-        console.log(`🌐 WebSocket server on ws://127.0.0.1:${wsPort}`);
+        console.log(`🌐 WebSocket server on ws://${process.env.WS_HOST || "127.0.0.1"}:${wsPort}`);
     }
 
     // 6. Subscribe to Jobs

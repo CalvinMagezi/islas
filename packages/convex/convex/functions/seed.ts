@@ -4,8 +4,17 @@ import { v } from "convex/values";
 export const seedOakstone = internalMutation({
     args: { userId: v.optional(v.string()) },
     handler: async (ctx, args) => {
-        // Default system user ID if not provided
-        const userId = args.userId || "system_oakstone";
+        // Default to "local-user" to match single-user auth system
+        const userId = args.userId || "local-user";
+
+        // Check if data already exists for this user
+        const existingDeals = await ctx.db
+            .query("oakstoneDeals")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .collect();
+        if (existingDeals.length > 0) {
+            return { success: true, seededDeals: 0, seededDocs: 0, message: "Data already exists" };
+        }
 
         // 1. Seed Deals
         const deals = [
@@ -96,5 +105,37 @@ export const seedOakstone = internalMutation({
         }
 
         return { success: true, seededDeals: deals.length, seededDocs: docs.length };
+    },
+});
+
+// Migration: update existing seed data from "system_oakstone" to "local-user"
+export const migrateUserId = internalMutation({
+    args: {
+        fromUserId: v.string(),
+        toUserId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        let dealCount = 0;
+        let docCount = 0;
+
+        const deals = await ctx.db
+            .query("oakstoneDeals")
+            .withIndex("by_user", (q) => q.eq("userId", args.fromUserId))
+            .collect();
+        for (const deal of deals) {
+            await ctx.db.patch(deal._id, { userId: args.toUserId });
+            dealCount++;
+        }
+
+        const docs = await ctx.db
+            .query("oakstoneDocs")
+            .withIndex("by_user", (q) => q.eq("userId", args.fromUserId))
+            .collect();
+        for (const doc of docs) {
+            await ctx.db.patch(doc._id, { userId: args.toUserId });
+            docCount++;
+        }
+
+        return { migratedDeals: dealCount, migratedDocs: docCount };
     },
 });
