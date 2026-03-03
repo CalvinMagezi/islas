@@ -95,7 +95,7 @@ Caddy (Let's Encrypt)
 
 ### Prerequisites
 
-- VPS with Docker + Docker Compose v2 (recommended: Hetzner CPX31 — 4 vCPU, 8GB RAM)
+- VPS with Docker + Docker Compose v2 (e.g., Hetzner CPX31, or Hostinger KV1. `setup.sh` will automatically configure a 2GB swap file on 1GB RAM instances to prevent OOM errors during the Next.js build).
 - Domain with DNS A records pointing to your VPS IP:
   - `ai.oakstonecapital.com`
   - `api.ai.oakstonecapital.com`

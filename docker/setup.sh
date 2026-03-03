@@ -22,6 +22,28 @@ command -v docker compose >/dev/null 2>&1 || err "'docker compose' not found. Do
 
 source .env
 
+# ── Step 0: Ensure sufficient swap space for low-memory VPS (Hostinger KV1) ──
+log "Checking system swap space..."
+TOTAL_SWAP=$(free -m | grep -i swap | awk '{print $2}')
+if [ "$TOTAL_SWAP" -lt 1024 ]; then
+    warn "Less than 1GB swap detected ($TOTAL_SWAP MB). Next.js memory-intensive builds might fail (OOM)."
+    log "Creating 2GB swap file (/swapfile) to ensure stability..."
+    if [ "$EUID" -eq 0 ]; then
+        fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+        if ! grep -q "/swapfile" /etc/fstab; then
+            echo '/swapfile none swap sw 0 0' >> /etc/fstab
+        fi
+        ok "2GB Swap configured and enabled."
+    else
+        err "Insufficient swap. Please run as root (sudo) to automatically create a swap file."
+    fi
+else
+    ok "Sufficient swap space detected: $TOTAL_SWAP MB."
+fi
+
 [ -z "${DOMAIN:-}" ]             && err "DOMAIN is not set in .env"
 [ -z "${ACCESS_PASSPHRASE:-}" ]  && err "ACCESS_PASSPHRASE is not set in .env"
 [ -z "${OPENROUTER_API_KEY:-}" ] && err "OPENROUTER_API_KEY is not set in .env"
